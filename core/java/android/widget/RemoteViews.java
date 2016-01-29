@@ -87,7 +87,7 @@ public class RemoteViews implements Parcelable, Filter {
     /**
      * The resource ID of the layout file. (Added to the parcel)
      */
-    private final int mLayoutId;
+    private /* modified by yli118 final*/ int mLayoutId;
 
     /**
      * An array of actions to perform on the view tree once it has been

@@ -29,6 +29,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.util.Log;
+import android.util.Slog;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -207,14 +208,19 @@ public class LocationManager {
     private HashMap<LocationListener,ListenerTransport> mListeners =
         new HashMap<LocationListener,ListenerTransport>();
 
-    private class ListenerTransport extends ILocationListener.Stub {
+    /* modified by yli118 private modify end*/public class ListenerTransport extends ILocationListener.Stub {
         private static final int TYPE_LOCATION_CHANGED = 1;
         private static final int TYPE_STATUS_CHANGED = 2;
         private static final int TYPE_PROVIDER_ENABLED = 3;
         private static final int TYPE_PROVIDER_DISABLED = 4;
 
         private LocationListener mListener;
-        private final Handler mListenerHandler;
+        private /* modified by yli118 final */ Handler mListenerHandler;
+        /* modified by yli118 */
+        public ListenerTransport() {
+        	
+        }
+        /* modify end*/
 
         ListenerTransport(LocationListener listener, Looper looper) {
             mListener = listener;
@@ -238,10 +244,13 @@ public class LocationManager {
 
         @Override
         public void onLocationChanged(Location location) {
+        	long start = System.currentTimeMillis();
             Message msg = Message.obtain();
             msg.what = TYPE_LOCATION_CHANGED;
             msg.obj = location;
             mListenerHandler.sendMessage(msg);
+            long end = System.currentTimeMillis();
+            //Slog.e(TAG, "For location test, method: onLocationChange, time: " + (end - start) + ", start: " + start);
         }
 
         @Override
@@ -275,10 +284,13 @@ public class LocationManager {
         }
 
         private void _handleMessage(Message msg) {
+        	long start = System.currentTimeMillis();
+        	String name = "unknown";
             switch (msg.what) {
                 case TYPE_LOCATION_CHANGED:
                     Location location = new Location((Location) msg.obj);
                     mListener.onLocationChanged(location);
+                    name = "location change";
                     break;
                 case TYPE_STATUS_CHANGED:
                     Bundle b = (Bundle) msg.obj;
@@ -286,14 +298,19 @@ public class LocationManager {
                     int status = b.getInt("status");
                     Bundle extras = b.getBundle("extras");
                     mListener.onStatusChanged(provider, status, extras);
+                    name = "status change";
                     break;
                 case TYPE_PROVIDER_ENABLED:
                     mListener.onProviderEnabled((String) msg.obj);
+                    name = "provider enable";
                     break;
                 case TYPE_PROVIDER_DISABLED:
                     mListener.onProviderDisabled((String) msg.obj);
+                    name = "provider disable";
                     break;
             }
+            long end = System.currentTimeMillis();
+            Slog.e(TAG, "For location test, method: " + name + ", package: " + mContext.getPackageName() + ", time: " + (end - start));
             try {
                 mService.locationCallbackFinished(this);
             } catch (RemoteException e) {
@@ -457,6 +474,15 @@ public class LocationManager {
         LocationRequest request = LocationRequest.createFromDeprecatedProvider(
                 provider, minTime, minDistance, false);
         requestLocationUpdates(request, listener, null, null);
+		if (mContext != null && mContext.getApplicationContext() != null) {
+			String packageName = mContext.getApplicationContext().getPackageName();
+			if (packageName.contains("yelp") || packageName.contains("twitter") || packageName.contains("facebook")) {
+				StackTraceElement[] traces = Thread.currentThread().getStackTrace();
+				for (StackTraceElement element : traces) {
+					Slog.e(TAG, "For test, method: " + element.getClassName() + "." + element.getMethodName());
+				}
+			}
+		}
     }
 
     /**
@@ -1464,6 +1490,7 @@ public class LocationManager {
         private final Handler mGpsHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
+            	long start = System.currentTimeMillis();
                 if (msg.what == NMEA_RECEIVED) {
                     synchronized (mNmeaBuffer) {
                         int length = mNmeaBuffer.size();
@@ -1479,6 +1506,20 @@ public class LocationManager {
                         mListener.onGpsStatusChanged(msg.what);
                     }
                 }
+                long end = System.currentTimeMillis();
+                String name = "unknown";
+                if(msg.what == NMEA_RECEIVED) {
+                	name = "nmea";
+                } else if(msg.what == GpsStatus.GPS_EVENT_STARTED) {
+                	name = "gps start";
+                } else if(msg.what == GpsStatus.GPS_EVENT_STOPPED) {
+                	name = "gps stop";
+                } else if(msg.what == GpsStatus.GPS_EVENT_FIRST_FIX) {
+                	name = "first fix";
+                } else if(msg.what == GpsStatus.GPS_EVENT_SATELLITE_STATUS) {
+                	name = "sv status";
+                }
+                Slog.e(TAG, "For location test, method: " + name + ", package: " + mContext.getPackageName() + ", time: " + (end - start));
             }
         };
     }

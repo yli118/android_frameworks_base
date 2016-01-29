@@ -123,6 +123,11 @@ public class Location implements Parcelable {
     public Location(Location l) {
         set(l);
     }
+    
+    // modified by yli118
+    public Location() {
+    }
+    // modify end
 
     /**
      * Sets the contents of the location to the values from the given location.

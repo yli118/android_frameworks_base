@@ -815,7 +815,9 @@ LOCAL_DROIDDOC_CUSTOM_TEMPLATE_DIR:=build/tools/droiddoc/templates-sdk
 
 LOCAL_UNINSTALLABLE_MODULE := true
 
-include $(BUILD_DROIDDOC)
+# modified by yli118
+#include $(BUILD_DROIDDOC)
+# modify end
 
 # $(gen), i.e. framework.aidl, is also needed while building against the current stub.
 $(full_target): $(framework_built) $(gen)

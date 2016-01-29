@@ -21,7 +21,6 @@ import android.os.IBinder;
 
 import java.util.Objects;
 
-/** @hide */
 public class DisplayAdjustments {
     public static final boolean DEVELOPMENT_RESOURCES_DEPEND_ON_ACTIVITY_TOKEN = false;
 

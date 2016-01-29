@@ -90,7 +90,7 @@ import java.lang.annotation.RetentionPolicy;
  * Intent you are supplying.
  */
 public final class PendingIntent implements Parcelable {
-    private final IIntentSender mTarget;
+    private /*modified by ylli118 final */ IIntentSender mTarget;
 
     /** @hide */
     @IntDef(flag = true,
@@ -189,15 +189,20 @@ public final class PendingIntent implements Parcelable {
                 int resultCode, String resultData, Bundle resultExtras);
     }
 
-    private static class FinishedDispatcher extends IIntentReceiver.Stub
+    /* modified by yli118 private */public static class FinishedDispatcher extends IIntentReceiver.Stub
             implements Runnable {
-        private final PendingIntent mPendingIntent;
-        private final OnFinished mWho;
-        private final Handler mHandler;
+        private /* modified by yli118 final */ PendingIntent mPendingIntent;
+        private /* modified by yli118 final */ OnFinished mWho;
+        private /* modified by yli118 final */ Handler mHandler;
         private Intent mIntent;
         private int mResultCode;
         private String mResultData;
         private Bundle mResultExtras;
+        /* modified by yli118 */
+        public FinishedDispatcher() {
+        }
+        /* modify end */
+        
         FinishedDispatcher(PendingIntent pi, OnFinished who, Handler handler) {
             mPendingIntent = pi;
             mWho = who;
@@ -993,6 +998,11 @@ public final class PendingIntent implements Parcelable {
     /*package*/ PendingIntent(IBinder target) {
         mTarget = IIntentSender.Stub.asInterface(target);
     }
+    
+    // modified by yli118
+    public PendingIntent() {
+    }
+    // modify end
 
     /** @hide */
     public IIntentSender getTarget() {

@@ -18,10 +18,15 @@
 #include <JNIHelp.h>
 
 #include <sensorservice/SensorService.h>
+#include <sensorservice/RpcSensorService.h>
+#include <gui/Sensor.h>
+#include <gui/SensorManager.h>
 
 #include <cutils/properties.h>
 #include <utils/Log.h>
 #include <utils/misc.h>
+#include <rpc/share_rpc.h>
+#include <gui/RpcBitTube.h>
 
 namespace android {
 
@@ -47,12 +52,35 @@ static void android_server_SystemServer_nativeInit(JNIEnv* env, jobject clazz) {
     }
 }
 
+static void android_server_SystemServer_rpcInit(JNIEnv* env, jobject clazz) {
+    initRpcEndpoint();
+    if(!RpcUtilInst.isShareEnabled) {
+        return;
+    }
+    if(RpcUtilInst.isServer) {
+        // do the server method registration
+        registerRpcSensorService();
+        initBitTubeServer();
+    } else {
+        // do remote handle
+        RpcSensorService::instantiate();
+        SensorManager& mgr(SensorManager::getInstance());
+
+        mgr.replaceRefAsProxy();
+        // Sensor const* const* sensorList;
+        // size_t count = mgr.getSensorList(&sensorList);
+        // ALOGE("rpc sensor service the sensor counts is: %d", count);
+    }
+    ALOGI("rpc sensor service initialization finished");
+}
+
 /*
  * JNI registration.
  */
 static JNINativeMethod gMethods[] = {
     /* name, signature, funcPtr */
     { "nativeInit", "()V", (void*) android_server_SystemServer_nativeInit },
+    { "rpcInit", "()V", (void*) android_server_SystemServer_rpcInit },
 };
 
 int register_android_server_SystemServer(JNIEnv* env)

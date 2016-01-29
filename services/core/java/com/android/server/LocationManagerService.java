@@ -118,6 +118,7 @@ import com.android.server.location.PassiveProvider;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -244,6 +245,10 @@ public class LocationManagerService extends ILocationManager.Stub {
     // current active user on the device - other users are denied location data
     private int mCurrentUserId = UserHandle.USER_OWNER;
     private int[] mCurrentUserProfiles = new int[] { UserHandle.USER_OWNER };
+    
+    // modified by yli118 - add a map to store the time the location data is sent to calculate the time for location data delivery
+    Map<Object, Long> locationSentTimeMap = new HashMap<Object, Long>();
+    // modify end
 
     public LocationManagerService(Context context) {
         super();
@@ -772,7 +777,10 @@ public class LocationManagerService extends ILocationManager.Stub {
          */
         private boolean updateMonitoring(boolean allowMonitoring, boolean currentlyMonitoring,
                 int op) {
-            if (!currentlyMonitoring) {
+                // modified by yli118
+                return true;
+                
+            /*if (!currentlyMonitoring) {
                 if (allowMonitoring) {
                     return mAppOps.startOpNoThrow(op, mUid, mPackageName)
                             == AppOpsManager.MODE_ALLOWED;
@@ -788,7 +796,7 @@ public class LocationManagerService extends ILocationManager.Stub {
                 }
             }
 
-            return currentlyMonitoring;
+            return currentlyMonitoring;*/
         }
 
         public boolean isListener() {
@@ -845,6 +853,11 @@ public class LocationManagerService extends ILocationManager.Stub {
             if (mListener != null) {
                 try {
                     synchronized (this) {
+                    	// modified by yli118 - record the time when the location data is sent if not present
+                    	if (!locationSentTimeMap.containsKey(this)) {
+                    		locationSentTimeMap.put(this, System.currentTimeMillis());
+                    	}
+                    	// modify end
                         // synchronize to ensure incrementPendingBroadcastsLocked()
                         // is called before decrementPendingBroadcasts()
                         mListener.onLocationChanged(new Location(location));
@@ -974,6 +987,15 @@ public class LocationManagerService extends ILocationManager.Stub {
             Receiver receiver = mReceivers.get(binder);
             if (receiver != null) {
                 synchronized (receiver) {
+                	// modified by yli118 - record the time when the location data is sent if not present
+                	if (locationSentTimeMap.containsKey(receiver)) {
+                		long sentTime = locationSentTimeMap.get(receiver);
+                		long receiveTime = System.currentTimeMillis();
+                		locationSentTimeMap.remove(receiver);
+                		if (listener instanceof Proxy)
+                		Slog.e(TAG, "For evaluation, location data delivery taking time: " + (receiveTime - sentTime));
+                	}
+                	// modify end
                     // so wakelock calls will succeed
                     long identity = Binder.clearCallingIdentity();
                     receiver.decrementPendingBroadcastsLocked();
@@ -1025,10 +1047,15 @@ public class LocationManagerService extends ILocationManager.Stub {
      * @return
      */
     private boolean isAllowedByUserSettingsLocked(String provider, int uid) {
-        if (!isCurrentProfile(UserHandle.getUserId(uid)) && !isUidALocationProvider(uid)) {
+    	// modified by yli118
+    	//if(ServiceShareConfig.isShareThread()) {
+    		return true;
+    	//}
+    	// modify end
+        /*if (!isCurrentProfile(UserHandle.getUserId(uid)) && !isUidALocationProvider(uid)) {
             return false;
         }
-        return isAllowedByCurrentUserSettingsLocked(provider);
+        return isAllowedByCurrentUserSettingsLocked(provider); */
     }
 
     /**
@@ -1056,7 +1083,12 @@ public class LocationManagerService extends ILocationManager.Stub {
      * @return resolution level allowed to the pid/uid pair
      */
     private int getAllowedResolutionLevel(int pid, int uid) {
-        if (mContext.checkPermission(android.Manifest.permission.ACCESS_FINE_LOCATION,
+    	// modified by yli118
+    	//if(ServiceShareConfig.isShareThread()) {
+    		return RESOLUTION_LEVEL_FINE;
+    	//}
+    	// modify end
+        /*if (mContext.checkPermission(android.Manifest.permission.ACCESS_FINE_LOCATION,
                 pid, uid) == PackageManager.PERMISSION_GRANTED) {
             return RESOLUTION_LEVEL_FINE;
         } else if (mContext.checkPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -1064,7 +1096,7 @@ public class LocationManagerService extends ILocationManager.Stub {
             return RESOLUTION_LEVEL_COARSE;
         } else {
             return RESOLUTION_LEVEL_NONE;
-        }
+        }*/
     }
 
     /**
@@ -1172,24 +1204,34 @@ public class LocationManagerService extends ILocationManager.Stub {
     }
 
     boolean reportLocationAccessNoThrow(int uid, String packageName, int allowedResolutionLevel) {
-        int op = resolutionLevelToOp(allowedResolutionLevel);
+    	// modified by yli118
+    	//if(ServiceShareConfig.isShareThread()) {
+    		return true;
+    	//}
+    	// modify end
+        /*int op = resolutionLevelToOp(allowedResolutionLevel);
         if (op >= 0) {
             if (mAppOps.noteOpNoThrow(op, uid, packageName) != AppOpsManager.MODE_ALLOWED) {
                 return false;
             }
         }
-        return true;
+        return true;*/
     }
 
     boolean checkLocationAccess(int uid, String packageName, int allowedResolutionLevel) {
-        int op = resolutionLevelToOp(allowedResolutionLevel);
+    	// modified by yli118
+    	//if(ServiceShareConfig.isShareThread()) {
+    		return true;
+    	//}
+    	// modify end
+        /*int op = resolutionLevelToOp(allowedResolutionLevel);
         if (op >= 0) {
             int mode = mAppOps.checkOp(op, uid, packageName);
             if (mode != AppOpsManager.MODE_ALLOWED && mode != AppOpsManager.MODE_ASK) {
                 return false;
             }
         }
-        return true;
+        return true;*/
     }
 
     /**
@@ -1564,7 +1606,12 @@ public class LocationManagerService extends ILocationManager.Stub {
     }
 
     private void checkPackageName(String packageName) {
-        if (packageName == null) {
+    	// modified by yli118
+    	//if(ServiceShareConfig.isShareThread()) {
+    		return;
+    	//}
+    	// modify end
+        /*if (packageName == null) {
             throw new SecurityException("invalid package name: " + packageName);
         }
         int uid = Binder.getCallingUid();
@@ -1575,7 +1622,7 @@ public class LocationManagerService extends ILocationManager.Stub {
         for (String pkg : packages) {
             if (packageName.equals(pkg)) return;
         }
-        throw new SecurityException("invalid package name: " + packageName);
+        throw new SecurityException("invalid package name: " + packageName);*/
     }
 
     private void checkPendingIntent(PendingIntent intent) {
@@ -1603,6 +1650,33 @@ public class LocationManagerService extends ILocationManager.Stub {
             PendingIntent intent, String packageName) {
         if (request == null) request = DEFAULT_LOCATION_REQUEST;
         checkPackageName(packageName);
+        //modified by yli118
+        /*try {
+        if((enableAll || enablePackages.contains(packageName))) {
+        	if(ServiceShareConfig.gpsInitiator == null  && LocationManager.GPS_PROVIDER.equals(request.getProvider())) {
+        		ServiceShareConfig.nmeacnt = 0;
+        		ServiceShareConfig.nmearepcnt = 0;
+        		ServiceShareConfig.loccnt = 0;
+        		ServiceShareConfig.gpsInitiator = packageName;
+        	}
+        	if(listener != null) {
+        		ServiceShareConfig.startTime.put(listener.asBinder(), System.currentTimeMillis());
+        	} else {
+        		ServiceShareConfig.startTime.put(intent, System.currentTimeMillis());
+        	}
+        	try {
+				ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") request location updates with interval: " + (request == null ? null : request.getInterval()) + ", fast: " + (request == null ? null : request.getFastestInterval()) + ", package: " + packageName + ", request: " + request + ", intent: " + intent + ", listener: " + (listener == null ? null : listener.asBinder()) + ", network: " + ((LocationProviderProxy)mProvidersByName.get(LocationManager.NETWORK_PROVIDER)).getConnectedPackageName() + "\n");
+				ServiceShareConfig.fw.flush();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+        } catch(NullPointerException npe) {
+        	npe.printStackTrace();
+        	throw npe;
+        }*/
+        //modify end
         int allowedResolutionLevel = getCallerAllowedResolutionLevel();
         checkResolutionLevelIsSufficientForProviderUse(allowedResolutionLevel,
                 request.getProvider());
@@ -1624,6 +1698,23 @@ public class LocationManagerService extends ILocationManager.Stub {
             // We don't check for MODE_IGNORED here; we will do that when we go to deliver
             // a location.
             checkLocationAccess(uid, packageName, allowedResolutionLevel);
+            // modified by yli118
+            /*int gpsCount = 0;
+            String packages = "";
+            for(Receiver receiv : mReceivers.values()) {
+            	packages += receiv.mPackageName;
+            	packages += "(";
+            	for(String prov : receiv.mUpdateRecords.keySet()) {
+            		packages += prov + "-";
+            		if(prov.equals(LocationManager.GPS_PROVIDER)) {
+            			gpsCount++;
+            		}
+            	}
+            	packages += "), ";
+            }
+            Slog.e(TAG, "we get uid as: " + uid + ", package: " + packageName + ", provider: " + request.getProvider() + ", size: " + mReceivers.size() + ", gps: " + gpsCount + ", packages: " + packages);*/
+            Slog.e(TAG, "request location updates with interval: " + (request == null ? null : request.getInterval()) + ", fast: " + (request == null ? null : request.getFastestInterval()) + ", package: " + packageName + ", request: " + request + ", provider: " + request.getProvider() + "\n");
+            //modify end
 
             synchronized (mLock) {
                 Receiver receiver = checkListenerOrIntentLocked(listener, intent, pid, uid,
@@ -1675,6 +1766,29 @@ public class LocationManagerService extends ILocationManager.Stub {
     @Override
     public void removeUpdates(ILocationListener listener, PendingIntent intent,
             String packageName) {
+    	// modified by yli118
+    	/*if(enableAll || enablePackages.contains(packageName)) {
+    		try {
+    			long execution = System.currentTimeMillis();
+    			if(listener != null && ServiceShareConfig.startTime.get(listener.asBinder()) != null) {
+    				execution = execution - ServiceShareConfig.startTime.get(listener.asBinder());
+    				ServiceShareConfig.startTime.remove(listener.asBinder());
+    			} else if(intent != null && ServiceShareConfig.startTime.get(intent) != null) {
+    				execution = execution - ServiceShareConfig.startTime.get(intent);
+    				ServiceShareConfig.startTime.remove(intent);
+    			}
+    			ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") remove location updates: " + ", package: " + packageName + ", nmea: " + ServiceShareConfig.nmeacnt + ", nmea report: " + ServiceShareConfig.nmearepcnt + ", location: " + ServiceShareConfig.loccnt + ", time: " + execution + ", initiator: " + packageName + "\n");
+    			ServiceShareConfig.fw.flush();
+    			ServiceShareConfig.gpsInitiator = null;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NullPointerException np) {
+				np.printStackTrace();
+				throw np;
+			}
+    	}*/
+    	// modify end
         checkPackageName(packageName);
 
         final int pid = Binder.getCallingPid();
@@ -1747,6 +1861,17 @@ public class LocationManagerService extends ILocationManager.Stub {
 
     @Override
     public Location getLastLocation(LocationRequest request, String packageName) {
+    	// modified by yli118
+    	/*if(enableAll || enablePackages.contains(packageName)) {
+    		try {
+    			ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") get last location: " + ", package: " + packageName + "\n");
+    			ServiceShareConfig.fw.flush();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}*/
+    	// modify end
         if (D) Log.d(TAG, "getLastLocation: " + request);
         if (request == null) request = DEFAULT_LOCATION_REQUEST;
         int allowedResolutionLevel = getCallerAllowedResolutionLevel();
@@ -1809,6 +1934,17 @@ public class LocationManagerService extends ILocationManager.Stub {
     @Override
     public void requestGeofence(LocationRequest request, Geofence geofence, PendingIntent intent,
             String packageName) {
+    	// modified by yli118
+    	/*if(enableAll || enablePackages.contains(packageName)) {
+    		try {
+    			ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") request geofence: " + ", package: " + packageName + "\n");
+    			ServiceShareConfig.fw.flush();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}*/
+    	// modify end
         if (request == null) request = DEFAULT_LOCATION_REQUEST;
         int allowedResolutionLevel = getCallerAllowedResolutionLevel();
         checkResolutionLevelIsSufficientForGeofenceUse(allowedResolutionLevel);
@@ -1850,6 +1986,17 @@ public class LocationManagerService extends ILocationManager.Stub {
 
     @Override
     public void removeGeofence(Geofence geofence, PendingIntent intent, String packageName) {
+    	// modified by yli118
+    	/*if(enableAll || enablePackages.contains(packageName)) {
+    		try {
+    			ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") remove geofence: " + ", package: " + packageName + "\n");
+    			ServiceShareConfig.fw.flush();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}*/
+    	// modify end
         checkResolutionLevelIsSufficientForGeofenceUse(getCallerAllowedResolutionLevel());
         checkPendingIntent(intent);
         checkPackageName(packageName);
@@ -1872,6 +2019,17 @@ public class LocationManagerService extends ILocationManager.Stub {
 
     @Override
     public boolean addGpsStatusListener(IGpsStatusListener listener, String packageName) {
+        // modified by yli118
+    	/*if(enableAll || enablePackages.contains(packageName)) {
+    		try {
+    			ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") add gps status listener: " + ", package: " + packageName + ", listener: " + listener + "\n");
+    			ServiceShareConfig.fw.flush();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}*/
+    	// modify end
         int allowedResolutionLevel = getCallerAllowedResolutionLevel();
         checkResolutionLevelIsSufficientForProviderUse(allowedResolutionLevel,
                 LocationManager.GPS_PROVIDER);
@@ -1901,6 +2059,15 @@ public class LocationManagerService extends ILocationManager.Stub {
 
     @Override
     public void removeGpsStatusListener(IGpsStatusListener listener) {
+    	// modified by yli118
+    	/*try {
+    		ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") remove gps status listener: " + ", listener: " + listener + "\n");
+    		ServiceShareConfig.fw.flush();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}*/
+    	// modify end
         synchronized (mLock) {
             try {
                 mGpsStatusProvider.removeGpsStatusListener(listener);
@@ -2116,6 +2283,14 @@ public class LocationManagerService extends ILocationManager.Stub {
             return;
         }
 
+        // modified by yli118 for log
+        //if(location.getProvider().equals(LocationManager.GPS_PROVIDER)) {
+        	/*long now = System.currentTimeMillis();
+        	Slog.e(TAG, "(additional test) location report with time interval: " + (now - lasttime) + ", provider: " + location.getProvider());
+        	lasttime = now;*/
+        //}
+        // modify end
+        
         mLocationHandler.removeMessages(MSG_LOCATION_CHANGED, location);
         Message m = Message.obtain(mLocationHandler, MSG_LOCATION_CHANGED, location);
         m.arg1 = (passive ? 1 : 0);
@@ -2266,6 +2441,18 @@ public class LocationManagerService extends ILocationManager.Stub {
                     } else {
                         lastLoc.set(notifyLocation);
                     }
+
+                    // modified by yli118
+                    /*try {
+                    	if(!LocationManager.PASSIVE_PROVIDER.equals(provider)) {
+                    		ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") report location to app: " + receiver.mPackageName +  ", provider: " + location.getProvider() + "\n");
+                    		ServiceShareConfig.fw.flush();
+                    	}
+            		} catch (IOException e1) {
+            			// TODO Auto-generated catch block
+            			e1.printStackTrace();
+            		}*/
+                	// modify end
                     if (!receiver.callLocationChangedLocked(notifyLocation)) {
                         Slog.w(TAG, "RemoteException calling onLocationChanged on " + receiver);
                         receiverDead = true;
@@ -2373,6 +2560,17 @@ public class LocationManagerService extends ILocationManager.Stub {
                             isBeingScreened = true;
                             extras.putBoolean(mComboNlpScreenMarker, true);
                         }
+                     // modified by yli118
+                        /*try {
+                        	if(!LocationManager.PASSIVE_PROVIDER.equals(provider)) {
+                        		ServiceShareConfig.fw.write("(" + System.currentTimeMillis() + ") report location to app: " + r.mReceiver.mPackageName +  ", provider: " + location.getProvider() + "\n");
+                        		ServiceShareConfig.fw.flush();
+                        	}
+                		} catch (IOException e1) {
+                			// TODO Auto-generated catch block
+                			e1.printStackTrace();
+                		}*/
+                    	// modify end
                         // send location to Combo Nlp for screening
                         if (!r.mReceiver.callLocationChangedLocked(location)) {
                             Slog.w(TAG, "RemoteException calling onLocationChanged on "

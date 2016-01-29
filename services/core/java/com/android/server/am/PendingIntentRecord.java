@@ -32,11 +32,11 @@ import android.util.Slog;
 import java.io.PrintWriter;
 import java.lang.ref.WeakReference;
 
-final class PendingIntentRecord extends IIntentSender.Stub {
-    final ActivityManagerService owner;
-    final Key key;
-    final int uid;
-    final WeakReference<PendingIntentRecord> ref;
+public /* modified by yli118 final modify end */ class PendingIntentRecord extends IIntentSender.Stub {
+	/* modified by yli118 final modify end */ ActivityManagerService owner;
+	/* modified by yli118 final modify end */ Key key;
+	/* modified by yli118 final modify end */ int uid;
+	/* modified by yli118 final modify end */ WeakReference<PendingIntentRecord> ref;
     boolean sent = false;
     boolean canceled = false;
 
@@ -44,24 +44,29 @@ final class PendingIntentRecord extends IIntentSender.Stub {
     String lastTagPrefix;
     String lastTag;
     
-    final static class Key {
-        final int type;
-        final String packageName;
-        final ActivityRecord activity;
-        final String who;
-        final int requestCode;
-        final Intent requestIntent;
-        final String requestResolvedType;
-        final Bundle options;
+    public /* modified by yli118 final modify end */ static class Key {
+    	/* modified by yli118 final modify end */ int type;
+    	/* modified by yli118 final modify end */ String packageName;
+    	/* modified by yli118 final modify end */ ActivityRecord activity;
+    	/* modified by yli118 final modify end */ String who;
+    	/* modified by yli118 final modify end */ int requestCode;
+    	/* modified by yli118 final modify end */ Intent requestIntent;
+    	/* modified by yli118 final modify end */ String requestResolvedType;
+    	/* modified by yli118 final modify end */ Bundle options;
         Intent[] allIntents;
         String[] allResolvedTypes;
-        final int flags;
-        final int hashCode;
-        final int userId;
+        /* modified by yli118 final modify end */ int flags;
+        /* modified by yli118 final modify end */ int hashCode;
+        /* modified by yli118 final modify end */ int userId;
         
         private static final int ODD_PRIME_NUMBER = 37;
         
-        Key(int _t, String _p, ActivityRecord _a, String _w,
+        /* modified by yli118 */
+        public Key() {
+        }
+        // modify end
+        
+        public Key(int _t, String _p, ActivityRecord _a, String _w,
                 int _r, Intent[] _i, String[] _it, int _f, Bundle _o, int _userId) {
             type = _t;
             packageName = _p;
@@ -183,12 +188,17 @@ final class PendingIntentRecord extends IIntentSender.Stub {
         }
     }
     
-    PendingIntentRecord(ActivityManagerService _owner, Key _k, int _u) {
+    public PendingIntentRecord(ActivityManagerService _owner, Key _k, int _u) {
         owner = _owner;
         key = _k;
         uid = _u;
         ref = new WeakReference<PendingIntentRecord>(this);
     }
+    
+    /* modified by yli118 */
+    public PendingIntentRecord() {
+    }
+    // modify end
 
     public int send(int code, Intent intent, String resolvedType,
             IIntentReceiver finishedReceiver, String requiredPermission) {

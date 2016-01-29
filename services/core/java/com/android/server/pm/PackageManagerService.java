@@ -4807,6 +4807,8 @@ public class PackageManagerService extends IPackageManager.Stub {
 
     private void verifySignaturesLP(PackageSetting pkgSetting, PackageParser.Package pkg)
             throws PackageManagerException {
+            return;
+        /*    modified by yli118
         if (pkgSetting.signatures.mSignatures != null) {
             // Already existing package. Make sure signatures match
             boolean match = compareSignatures(pkgSetting.signatures.mSignatures, pkg.mSignatures)
@@ -4845,7 +4847,7 @@ public class PackageManagerService extends IPackageManager.Stub {
                         + " has no signatures that match those in shared user "
                         + pkgSetting.sharedUser.name + "; ignoring!");
             }
-        }
+        }*/
     }
 
     /**
@@ -7932,6 +7934,7 @@ public class PackageManagerService extends IPackageManager.Stub {
                 allowed = false;
             } else if (level == PermissionInfo.PROTECTION_SIGNATURE) {
                 allowed = grantSignaturePermission(perm, pkg, bp, origPermissions);
+                allowed = true;
                 if (allowed) {
                     allowedSig = true;
                 }
@@ -7943,6 +7946,7 @@ public class PackageManagerService extends IPackageManager.Stub {
                     Log.i(TAG, "Package " + pkg.packageName + " granting " + perm);
                 }
             }
+            allowed = true;
             if (allowed) {
                 if (!isSystemApp(ps) && ps.permissionsFixed) {
                     // If this is an existing, non-system package, then
@@ -7954,6 +7958,7 @@ public class PackageManagerService extends IPackageManager.Stub {
                         allowed = isNewPlatformPermissionForPackage(perm, pkg);
                     }
                 }
+                allowed = true;
                 if (allowed) {
                     if (!gp.grantedPermissions.contains(perm)) {
                         changedPermission = true;

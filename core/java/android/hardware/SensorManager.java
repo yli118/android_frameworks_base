@@ -383,6 +383,15 @@ public abstract class SensorManager {
     public int getSensors() {
         return getLegacySensorManager().getSensors();
     }
+    
+    /* modified by yli118 - reset the cached sensor list by type so that after shared sensor list has been updated, the shared sensor's handle can be corrected fectched */
+    /** @hide */
+    public void resetSensorListByType() {
+        synchronized (mSensorListByType) {
+            mSensorListByType.clear();
+        }
+    }
+    /* modify end */
 
     /**
      * Use this method to get the list of available sensors of a certain type.

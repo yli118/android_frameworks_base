@@ -81,6 +81,29 @@ public class SystemSensorManager extends SensorManager {
             }
         }
     }
+    
+    /* modified by yli118 - to update the sensor list because different devies have different sensor list and thus have different handle value for the same type of sensor */
+    /** @hide */
+    public static void updateSensorList() {
+        // reinitialize the sensor list after enabled sharing
+        final ArrayList<Sensor> fullList = sFullSensorsList;
+        fullList.clear();
+        int i = 0;
+        do {
+            Sensor sensor = new Sensor();
+            i = nativeGetNextSensor(sensor, i);
+            if (i>=0) {
+                //Log.d(TAG, "found sensor: " + sensor.getName() +
+                //        ", handle=" + sensor.getHandle());
+                fullList.add(sensor);
+                sHandleToSensor.put(sensor.getHandle(), sensor);
+            }
+        } while (i>0);
+    }
+    
+    // make sure that the reset only happen once after shared sensor list has been retrieved
+    private boolean isResetBefore = false;
+    /* modify end*/
 
 
     /** @hide */
@@ -98,6 +121,17 @@ public class SystemSensorManager extends SensorManager {
             Log.e(TAG, "sensor or listener is null");
             return false;
         }
+        /* modified by yli118 - to check if the sensor matchs the current one in sensor list */
+        if (sHandleToSensor.get(sensor.getHandle()) == null || sensor.getType() != sHandleToSensor.get(sensor.getHandle()).getType()) {
+            if(!isResetBefore) {
+                resetSensorListByType();
+                isResetBefore = true;
+            }
+            Log.e(TAG, "rpc sensor service register sensor: " + sensor.getHandle() + ", name: " + sensor + ", default sensor: " + getDefaultSensor(sensor.getType()) + ", handle: " + getDefaultSensor(sensor.getType()).getHandle());
+            sensor = getDefaultSensor(sensor.getType());
+            Log.e(TAG, "rpc sensor service register current sensor: " + sensor.getHandle() + ", name: " + sensor);
+        }
+        /* modify end*/
         // Trigger Sensors should use the requestTriggerSensor call.
         if (sensor.getReportingMode() == Sensor.REPORTING_MODE_ONE_SHOT) {
             Log.e(TAG, "Trigger Sensors should use the requestTriggerSensor.");
@@ -136,6 +170,15 @@ public class SystemSensorManager extends SensorManager {
         if (sensor != null && sensor.getReportingMode() == Sensor.REPORTING_MODE_ONE_SHOT) {
             return;
         }
+        /* modified by yli118 - to check if the sensor matchs the current one in sensor list */
+        if (sensor != null && sHandleToSensor.get(sensor.getHandle()) != null && sensor.getType() != sHandleToSensor.get(sensor.getHandle()).getType()) {
+            if(!isResetBefore) {
+                resetSensorListByType();
+                isResetBefore = true;
+            }
+            sensor = getDefaultSensor(sensor.getType());
+        }
+        /* modify end*/
 
         synchronized (mSensorListeners) {
             SensorEventQueue queue = mSensorListeners.get(listener);
@@ -158,6 +201,16 @@ public class SystemSensorManager extends SensorManager {
     @Override
     protected boolean requestTriggerSensorImpl(TriggerEventListener listener, Sensor sensor) {
         if (sensor == null) throw new IllegalArgumentException("sensor cannot be null");
+        
+        /* modified by yli118 - to check if the sensor matchs the current one in sensor list */
+        if (sHandleToSensor.get(sensor.getHandle()) == null || sensor.getType() != sHandleToSensor.get(sensor.getHandle()).getType()) {
+            if(!isResetBefore) {
+                resetSensorListByType();
+                isResetBefore = true;
+            }
+            sensor = getDefaultSensor(sensor.getType());
+        }
+        /* modify end*/
 
         if (sensor.getReportingMode() != Sensor.REPORTING_MODE_ONE_SHOT) return false;
 
@@ -184,6 +237,15 @@ public class SystemSensorManager extends SensorManager {
         if (sensor != null && sensor.getReportingMode() != Sensor.REPORTING_MODE_ONE_SHOT) {
             return false;
         }
+        /* modified by yli118 - to check if the sensor matchs the current one in sensor list */
+        if (sensor != null && sHandleToSensor.get(sensor.getHandle()) != null && sensor.getType() != sHandleToSensor.get(sensor.getHandle()).getType()) {
+            if(!isResetBefore) {
+                resetSensorListByType();
+                isResetBefore = true;
+            }
+            sensor = getDefaultSensor(sensor.getType());
+        }
+        /* modify end*/
         synchronized (mTriggerListeners) {
             TriggerEventQueue queue = mTriggerListeners.get(listener);
             if (queue != null) {

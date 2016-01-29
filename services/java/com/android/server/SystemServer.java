@@ -36,8 +36,11 @@ import android.content.res.Resources;
 import android.content.res.ThemeConfig;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.hardware.SystemSensorManager;
 import android.media.AudioService;
 import android.media.tv.TvInputManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Environment;
 import android.os.FactoryTest;
@@ -109,6 +112,10 @@ import com.android.server.wallpaper.WallpaperManagerService;
 import com.android.server.webkit.WebViewUpdateService;
 import com.android.server.wm.WindowManagerService;
 
+import android.location.ILocationManager;
+import com.google.dexmaker.stock.ProxyBuilder;
+import com.esotericsoftware.kryonet.rmi.RemoteObject;
+
 import dalvik.system.VMRuntime;
 import dalvik.system.PathClassLoader;
 import java.lang.reflect.Constructor;
@@ -178,6 +185,11 @@ public final class SystemServer {
      * Called to initialize native system services.
      */
     private static native void nativeInit();
+    
+    /**
+     * Called to set up the rpc system services
+     */
+    static native void rpcInit();
 
     /**
      * The main entry point from zygote.
@@ -204,6 +216,10 @@ public final class SystemServer {
         }
     }
 
+    // modified by yli118 - add a global reference for registering during sharing
+    LocationManagerService locationF = null;
+    // modify end
+    
     private void run() {
         // If a device's clock is before 1970 (before 0), a lot of
         // APIs crash dealing with negative numbers, notably
@@ -263,6 +279,10 @@ public final class SystemServer {
         android.os.Process.setCanSelfBackground(false);
         Looper.prepareMainLooper();
 
+		// modified by yli118
+        ServiceShareConfig.loadConfig();
+        // modify end
+
         // Initialize native services.
         System.loadLibrary("android_servers");
         nativeInit();
@@ -288,6 +308,54 @@ public final class SystemServer {
             Slog.e("System", "************ Failure starting system services", ex);
             throw ex;
         }
+        
+        Thread tt = new Thread() {
+				@Override
+				public void run() {
+					ConnectivityManager connectivityManager = (ConnectivityManager) mSystemContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+					boolean isConnected = false;
+					while (!isConnected) {
+						NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+						isConnected = (activeNetworkInfo != null && activeNetworkInfo.isConnected());
+						try {
+							Slog.e(TAG, "network is still not connected");
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					
+					
+					// Codes for the java service share
+					ServiceShareConfig.setContext(mSystemContext);
+					ServiceShareConfig.startServiceShare();
+					
+					if(ServiceShareConfig.isServer) {
+						if(ServiceShareConfig.isLocationSharingEnabled) {
+							ServiceServer.registerService(ServiceShareConfig.LOCATION_SERVICE, locationF);
+							Slog.i(TAG, "we got finally get server setup " + locationF);
+						}
+					} else {
+						if (ServiceShareConfig.isLocationSharingEnabled) {
+							Object remoteObj = ServiceClient.getRemoteProxy(ServiceShareConfig.LOCATION_SERVICE, ILocationManager.class);
+							((RemoteObject) remoteObj).setNonBlocking(false);
+							ServiceShareConfig.getLocationHandler().setRemoteObj(remoteObj);
+							Slog.i(TAG, "we got finally get remote estabilished connected " + remoteObj);
+						}
+					}
+	
+					// Initialize native services.
+					//Slog.e(TAG, "rpc sensor service start to call native init");
+					SystemServer.rpcInit();
+					
+					// reinitialize and update the sensor list
+					SystemSensorManager.updateSensorList();
+				}
+			};
+			tt.start();
+        //}
+        // modify end
 
         // For debug builds, log event loop stalls to dropbox for analysis.
         if (StrictMode.conditionallyEnableDebugLogging()) {
@@ -799,8 +867,26 @@ public final class SystemServer {
             if (!disableLocation) {
                 try {
                     Slog.i(TAG, "Location Manager");
-                    location = new LocationManagerService(context);
-                    ServiceManager.addService(Context.LOCATION_SERVICE, location);
+                    // modified by yli118
+                    /*location = new LocationManagerService(context);
+                    ServiceManager.addService(Context.LOCATION_SERVICE, location); //orig */
+					if (!ServiceShareConfig.isLocationSharingEnabled || ServiceShareConfig.isServer) {
+						location = new LocationManagerService(context);
+						locationF = location;
+					} else {
+						ServiceProxyHandler locationHandler = new ServiceProxyHandler(ILocationManager.class);
+						ServiceShareConfig.setLocationHandler(locationHandler);
+						location = ProxyBuilder
+								.forClass(LocationManagerService.class)
+						        .parentClassLoader(this.getClass().getClassLoader())
+								.constructorArgTypes(Context.class)
+								.constructorArgValues(context)
+								.dexCache(new File("/data/data/system_server/"))
+								.handler(ServiceShareConfig.getLocationHandler())
+								.build();
+                    }
+					ServiceManager.addService(Context.LOCATION_SERVICE, location);
+                    // modify end
                 } catch (Throwable e) {
                     reportWtf("starting Location Manager", e);
                 }

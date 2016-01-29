@@ -39,6 +39,10 @@ LOCAL_C_INCLUDES += \
     libcore/include/libsuspend \
 	$(call include-path-for, libhardware)/hardware \
 	$(call include-path-for, libhardware_legacy)/hardware_legacy \
+	bionic \
+	bionic/libstdc++/include \
+	external/stlport/stlport \
+	external/zlib \
 
 LOCAL_SHARED_LIBRARIES += \
     libandroid_runtime \
@@ -62,6 +66,9 @@ LOCAL_SHARED_LIBRARIES += \
     libEGL \
     libGLESv2 \
     libnetutils \
+    libstlport \
+    libsrpc \
+    libz \
 
 ifeq ($(BOARD_USES_QC_TIME_SERVICES),true)
 LOCAL_CFLAGS += -DHAVE_QC_TIME_SERVICES=1

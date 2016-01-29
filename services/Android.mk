@@ -15,6 +15,8 @@ LOCAL_SRC_FILES += \
 # Uncomment to enable output of certain warnings (deprecated, unchecked)
 # LOCAL_JAVACFLAGS := -Xlint
 
+LOCAL_JAVA_LIBRARIES := kryonet dexmaker
+
 # Services that will be built as part of services.jar
 # These should map to directory names relative to this
 # Android.mk.

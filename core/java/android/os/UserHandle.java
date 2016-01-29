@@ -68,7 +68,7 @@ public final class UserHandle implements Parcelable {
      */
     public static final boolean MU_ENABLED = true;
 
-    final int mHandle;
+    /* modified by yli118 final */ int mHandle;
 
     private static final SparseArray<UserHandle> userHandles = new SparseArray<UserHandle>();
 
@@ -238,6 +238,11 @@ public final class UserHandle implements Parcelable {
     public static final int myUserId() {
         return getUserId(Process.myUid());
     }
+
+    /* modified by yli118 */
+    public UserHandle() {
+    }
+    // modify end
 
     /**
      * Returns true if this UserHandle refers to the owner user; false otherwise.

@@ -1328,6 +1328,8 @@ public class GpsLocationProvider implements LocationProviderInterface {
     }
 
     private void updateClientUids(WorkSource source) {
+    // modified by yli118
+    /*
         // Update work source.
         WorkSource[] changes = mClientSource.setReturningDiffs(source);
         if (changes == null) {
@@ -1370,7 +1372,7 @@ public class GpsLocationProvider implements LocationProviderInterface {
                     Log.w(TAG, "RemoteException", e);
                 }
             }
-        }
+        }*/
     }
 
     @Override

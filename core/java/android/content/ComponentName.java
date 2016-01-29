@@ -33,8 +33,13 @@ import java.lang.Comparable;
  * 
  */
 public final class ComponentName implements Parcelable, Cloneable, Comparable<ComponentName> {
-    private final String mPackage;
-    private final String mClass;
+    private /*modified by yli118 final */ String mPackage;
+    private /*modified by yli118 final */ String mClass;
+    
+    /*modified by yli118 */
+    public ComponentName() {
+    }
+    /* modify end */
 
     /**
      * Create a new component identifier.

@@ -29,21 +29,21 @@ public final class ProviderProperties implements Parcelable {
      * True if provider requires access to a
      * data network (e.g., the Internet), false otherwise.
      */
-    public final boolean mRequiresNetwork;
+    public boolean mRequiresNetwork;
 
     /**
      * True if the provider requires access to a
      * satellite-based positioning system (e.g., GPS), false
      * otherwise.
      */
-    public final boolean mRequiresSatellite;
+    public boolean mRequiresSatellite;
 
     /**
      * True if the provider requires access to an appropriate
      * cellular network (e.g., to make use of cell tower IDs), false
      * otherwise.
      */
-    public final boolean mRequiresCell;
+    public boolean mRequiresCell;
 
     /**
      * True if the use of this provider may result in a
@@ -51,7 +51,7 @@ public final class ProviderProperties implements Parcelable {
      * each provider to give accurate information. Cell (network) usage
      * is not considered monetary cost.
      */
-    public final boolean mHasMonetaryCost;
+    public boolean mHasMonetaryCost;
 
     /**
      * True if the provider is able to provide altitude
@@ -59,7 +59,7 @@ public final class ProviderProperties implements Parcelable {
      * under most circumstances but may occasionally not report it
      * should return true.
      */
-    public final boolean mSupportsAltitude;
+    public boolean mSupportsAltitude;
 
     /**
      * True if the provider is able to provide speed
@@ -67,7 +67,7 @@ public final class ProviderProperties implements Parcelable {
      * under most circumstances but may occasionally not report it
      * should return true.
      */
-    public final boolean mSupportsSpeed;
+    public boolean mSupportsSpeed;
 
     /**
      * True if the provider is able to provide bearing
@@ -75,7 +75,7 @@ public final class ProviderProperties implements Parcelable {
      * under most circumstances but may occasionally not report it
      * should return true.
      */
-    public final boolean mSupportsBearing;
+    public boolean mSupportsBearing;
 
     /**
      * Power requirement for this provider.
@@ -83,7 +83,7 @@ public final class ProviderProperties implements Parcelable {
      * @return the power requirement for this provider, as one of the
      * constants Criteria.POWER_*.
      */
-    public final int mPowerRequirement;
+    public int mPowerRequirement;
 
     /**
      * Constant describing the horizontal accuracy returned
@@ -92,7 +92,13 @@ public final class ProviderProperties implements Parcelable {
      * @return the horizontal accuracy for this provider, as one of the
      * constants Criteria.ACCURACY_COARSE or Criteria.ACCURACY_FINE
      */
-    public final int mAccuracy;
+    public int mAccuracy;
+    
+    // modified by yli118 and removed all the final field modifier
+    public ProviderProperties() {
+    	
+    }
+    // modify end
 
     public ProviderProperties(boolean mRequiresNetwork,
             boolean mRequiresSatellite, boolean mRequiresCell, boolean mHasMonetaryCost,
